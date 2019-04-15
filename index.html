@@ -65,8 +65,8 @@
   'use strict';
   window.onload = function () {
     // Adjustment parameters (target: 60FPS)
-    const MOVERS_COUNT  = 80000;
-    var updateFunc      = update_v6; // to select different algorithm
+    const MOVERS_COUNT  = 140000;
+    var updateFunc      = update_v7; // to select different algorithm
     //----------------------------------------------------------------------------------------------
     // Program parameters
     const MOVE_DURATION = 1000; // actual duration = 2 * PI
@@ -249,6 +249,59 @@
     function hide (m)               { hidden.appendChild(movers[m]);            }
     function isHidden (m)           { return movers[m].parentNode == hidden;    }
     function isVisible (m)          { return movers[m].parentNode == container; }
+    //----------------------------------------------------------------------------------------------
+    // version 7: improve v6 with pre-calculated index
+    function update_v7(timestamp) {
+      var scrollY     = window.scrollY;
+      var minVisibleM = Math.floor(getMinVisibleY(scrollY) / OFFSET);
+      var maxVisibleM = Math.ceil(getMaxVisibleY(scrollY) / OFFSET);
+      batchHide(               0,  minVisibleM - 1             );
+      batchHide( maxVisibleM + 1,     MOVERS_COUNT             ); // hide ASAP before drawing
+      batchDraw(     minVisibleM,      maxVisibleM, timestamp  );
+
+      if (window.running) rAF(updateFunc);
+      // FIX: Why hide balls hidden already ?
+    }
+    //----------------------------------------------------------------------------------------------
+    function batchHide (from, to) {
+      from = Math.max(from, 0);
+      to   = Math.min(to, MOVERS_COUNT - 2); // never hide the last mover (to keep page size)
+      for (var m = from; m <= to; m++) {
+        if (isVisible(m)) 
+          hide(m);
+      }
+    }
+    //----------------------------------------------------------------------------------------------
+    function batchHide2 (from, to) { batchHide(from, to); } // to separate in profiler
+    //----------------------------------------------------------------------------------------------
+    function batchDraw (from, to, timestamp) { // draw = move + show
+      from = Math.max(from, 0);
+      to   = Math.min(to, MOVERS_COUNT - 1);
+      for (var m = from; m <= to; m++) {
+        movers[m].style.left = topToLeft(tops[m], timestamp) + 'px';
+        if(isHidden(m)) 
+          requestShow(m);
+      }
+      processShowRequests();
+    }
+    //----------------------------------------------------------------------------------------------
+    function batchMove (from, to, timestamp) {
+      from = Math.max(from, 0);
+      to   = Math.min(to, MOVERS_COUNT - 1);
+      for (var m = from; m <= to; m++) {
+        movers[m].style.left = topToLeft(tops[m], timestamp) + 'px';
+      }
+    }
+    //----------------------------------------------------------------------------------------------
+    function batchShow (from, to) {
+      from = Math.max(from, 0);
+      to   = Math.min(to, MOVERS_COUNT - 1);
+      for (var m = from; m <= to; m++) {
+        if(isHidden(m)) 
+          requestShow(m);
+      }
+      processShowRequests();
+    }
   }
   </script>
   <!-- JAVASCRIPT - END -->
