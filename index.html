@@ -65,7 +65,6 @@
     var viewportHeight  = window.innerHeight;
     var minLeft         = ELEMENT_SIZE * 0.5;
     var maxLeft         = window.innerWidth * 0.5 - ELEMENT_SIZE;
-    var updateInterval  = 0;
     window.running      = false;
     //----------------------------------------------------------------------------------------------
     (function init() {
@@ -77,13 +76,7 @@
     function initButtonHandler () {
       btn.addEventListener('click', function (e) {
         running = !running;
-
-        if (running) {
-          updateInterval = setInterval( onInterval, 1000.0 / 60 ); // FIX: unstable frame rate
-        } else if (updateInterval > 0) {
-          clearInterval( updateInterval );
-          updateInterval = 0;
-        }
+        if (running) setTimeout( onInterval, 1000.0 / 60 );
       });
     }
     //----------------------------------------------------------------------------------------------
@@ -109,6 +102,7 @@
         movers[m].style.left = topToLeft(movers[m].offsetTop, timestamp) + 'px';
       }
       // FIX: Forced reflow
+      if (window.running) setTimeout( onInterval, 1000.0 / 60 );
     }
   }
   </script>
