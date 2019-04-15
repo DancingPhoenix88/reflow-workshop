@@ -53,12 +53,13 @@
   window.onload = function () {
     // Adjustment parameters (target: 60FPS)
     const MOVERS_COUNT  = 100;
-    var updateFunc      = update_v0; // to select different algorithm
+    var updateFunc      = update_v1; // to select different algorithm
     //----------------------------------------------------------------------------------------------
     // Program parameters
     const MOVE_DURATION = 1000; // actual duration = 2 * PI
     const ELEMENT_SIZE  = 50;   // px
     const OFFSET        = 5;    // px
+    var rAF             = window.requestAnimationFrame;
     var btn             = document.getElementById('btnToggle');
     var container       = document.getElementById('container');
     var movers          = [];
@@ -70,13 +71,13 @@
     (function init() {
       initButtonHandler();
       generateBalls();
-      onInterval(); // init 1st frame
+      rAF( updateFunc ); // init 1st frame
     })();
     //----------------------------------------------------------------------------------------------
     function initButtonHandler () {
       btn.addEventListener('click', function (e) {
         running = !running;
-        if (running) setTimeout( onInterval, 1000.0 / 60 );
+        if (running) rAF( updateFunc );
       });
     }
     //----------------------------------------------------------------------------------------------
@@ -104,6 +105,15 @@
       // FIX: Forced reflow
       if (window.running) setTimeout( onInterval, 1000.0 / 60 );
     }
+    //----------------------------------------------------------------------------------------------
+    // v1: replace setInterval by requestAnimationFrame for stable frame rate
+    function update_v1 (timestamp) {
+      for (var m = 0; m < MOVERS_COUNT; m++) {
+        movers[m].style.left = topToLeft(movers[m].offsetTop, timestamp) + 'px';
+      }
+      // FIX: Forced reflow
+      if (window.running) rAF(updateFunc);
+    };
   }
   </script>
   <!-- JAVASCRIPT - END -->
