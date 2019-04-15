@@ -36,15 +36,6 @@
 
     body { margin: 0; background: black; }
 
-    #camera {
-      position: absolute;
-      width: 98%;
-      left: 1%;
-      height: 100%;
-      border: solid 3px #4caf5080;
-      z-index: 1;
-    }
-
     #hidden { display: none; }
   </style>
   <!-- CSS -END -->
@@ -76,11 +67,9 @@
     var rAF             = window.requestAnimationFrame;
     var btn             = document.getElementById('btnToggle');
     var container       = document.getElementById('container');
-    var camera          = document.getElementById('camera');
     var hidden          = document.getElementById('hidden');
     var movers          = [];
     var tops            = [];
-    var lefts           = [];
     var viewportHeight  = window.innerHeight;
     var minLeft         = ELEMENT_SIZE * 0.5;
     var maxLeft         = window.innerWidth * 0.5 - ELEMENT_SIZE;
@@ -103,58 +92,21 @@
     }
     //----------------------------------------------------------------------------------------------
     function generateBalls () {
-      console.time('generateBalls');
+      // Count visible balls
+      prevMinM = Math.floor(getMinVisibleY(scrollY) / OFFSET);
+      prevMaxM = Math.ceil(getMaxVisibleY(scrollY) / OFFSET);
 
-      // METHOD 1: innerHTML & join
-      // {
-      //   var htmls = [];
-      //   for (var m = 0; m < MOVERS_COUNT; m++) {
-      //     tops[m]  = m * OFFSET;
-      //     htmls[m] = `<div class="mover" style="top:${tops[m]}px"></div>`;
-      //   }
-      //   container.innerHTML = htmls.join('');
-      //   movers = container.children;
-      // }
+      // Create a prototype for balls
+      var mvPrototype = document.createElement('div');
+      mvPrototype.classList.add('mover');
 
-      // METHOD 2: cloneNode
-      // {
-      //   // Create a prototype for balls
-      //   var mvPrototype = document.createElement('div');
-      //   mvPrototype.classList.add('mover');
+      // Clone from prototype and attach balls to default node
+      cloneVisibleMovers     ( mvPrototype,                0,         prevMaxM );
+      delayCloneHiddenMovers ( mvPrototype,     prevMaxM + 1, MOVERS_COUNT - 2 );
+      cloneVisibleMovers     ( mvPrototype, MOVERS_COUNT - 1, MOVERS_COUNT - 1 ); // last ball
 
-      //   // Clone from prototypes and add to a virtual Fragment node
-      //   for (var m = 0; m < MOVERS_COUNT; m++) {
-      //     tops[m]      = m * OFFSET;
-      //     var mv       = mvPrototype.cloneNode();
-      //     mv.style.top = tops[m] + 'px';
-      //     movers[m]    = mv;
-      //     batchNodeShow.appendChild(mv);
-      //   }
-
-      //   // Add all Fragment children to container
-      //   container.appendChild(batchNodeShow);
-      // }
-
-      // METHOD 3: cloneNode with hidden by default
-      {
-        // Count visible balls
-        prevMinM = Math.floor(getMinVisibleY(scrollY) / OFFSET);
-        prevMaxM = Math.ceil(getMaxVisibleY(scrollY) / OFFSET);
-
-        // Create a prototype for balls
-        var mvPrototype = document.createElement('div');
-        mvPrototype.classList.add('mover');
-
-        // Clone from prototype and attach balls to default node
-        cloneVisibleMovers     ( mvPrototype,                0,         prevMaxM );
-        delayCloneHiddenMovers ( mvPrototype,     prevMaxM + 1, MOVERS_COUNT - 2 );
-        cloneVisibleMovers     ( mvPrototype, MOVERS_COUNT - 1, MOVERS_COUNT - 1 ); // last ball
-
-        // Force scrollY = 0 so that user will see visible balls
-        window.scrollTo(0, 0);
-      }
-
-      console.timeEnd('generateBalls');
+      // Force scrollY = 0 so that user will see visible balls
+      window.scrollTo(0, 0);
     }
     //----------------------------------------------------------------------------------------------
     function cloneVisibleMovers (mvPrototype, from, to) {
@@ -180,7 +132,6 @@
     }
     //----------------------------------------------------------------------------------------------
     function delayCloneHiddenMovers (mvPrototype, from, to) {
-      console.time('delayCloneHiddenMovers');
       btn.style.display = 'none';
 
       setTimeout(
@@ -188,87 +139,14 @@
           cloneHiddenMovers( mvPrototype, from, to );
           btn.style.display = null;
           rAF( updateFunc ); // init 1st frame
-          console.timeEnd('delayCloneHiddenMovers');
         },
         20, // ms
         btn, updateFunc, mvPrototype, from, to // forward parameters
       );
     }
     //----------------------------------------------------------------------------------------------
-    function onInterval () {
-      updateFunc( Date.now() );
-    }
-    //----------------------------------------------------------------------------------------------
     function topToLeft (top, timestamp) {
       return (Math.sin(top + timestamp / MOVE_DURATION) + 1) * maxLeft + minLeft;
-    }
-    //----------------------------------------------------------------------------------------------
-    function update_v0 (timestamp) {
-      for (var m = 0; m < MOVERS_COUNT; m++) {
-        movers[m].style.left = topToLeft(movers[m].offsetTop, timestamp) + 'px';
-      }
-      // FIX: Forced reflow
-      if (window.running) setTimeout( onInterval, 1000.0 / 60 );
-    }
-    //----------------------------------------------------------------------------------------------
-    // v1: replace setInterval by requestAnimationFrame for stable frame rate
-    function update_v1 (timestamp) {
-      for (var m = 0; m < MOVERS_COUNT; m++) {
-        movers[m].style.left = topToLeft(movers[m].offsetTop, timestamp) + 'px';
-      }
-      // FIX: Forced reflow
-      if (window.running) rAF(updateFunc);
-    };
-    //----------------------------------------------------------------------------------------------
-    // version 2: separate getting & setting style to eliminate forced reflows
-    function update_v2 (timestamp) {
-      for (var m = 0; m < MOVERS_COUNT; m++) {
-        lefts[m] = topToLeft(getTop_v2(m), timestamp); // get
-      }
-      for (var m = 0; m < MOVERS_COUNT; m++) {
-        movers[m].style.left = lefts[m] + 'px'; // set
-      }
-      if (window.running) { rAF(updateFunc); }
-      // FIX: Cache 'movers[m].offsetTop'
-    };
-    //----------------------------------------------------------------------------------------------
-    function getTop_v2 (m) { return movers[m].offsetTop; }
-    //----------------------------------------------------------------------------------------------
-    // version 3: cache offsetTop (& eliminate array 'lefts' too)
-    function update_v3 (timestamp) {
-      for (var m = 0; m < MOVERS_COUNT; m++) {
-        movers[m].style.left = topToLeft(getTop_v3(m), timestamp) + 'px';
-      }
-      if (window.running) rAF(updateFunc);
-      // FIX: Paint time is too long
-    }
-    //----------------------------------------------------------------------------------------------
-    function getTop_v3 (m) { return tops[m]; } // too fast -> from now on, we use tops[m] directly
-    //----------------------------------------------------------------------------------------------
-    // version 4: use 'translate' instead of 'top' & 'left'
-    // 'Repaint' time is eliminated, but 'Restyle' time increases
-    // I had no clue to improve from v4, so v5 will be improved from v3
-    function update_v4(timestamp) {
-      for (var m = 0; m < MOVERS_COUNT; m++) {
-        movers[m].style.transform = `translate(${topToLeft(tops[m], timestamp)}px, ${tops[m]}px)`;
-      }
-      if (window.running) rAF(updateFunc);
-    }
-    //----------------------------------------------------------------------------------------------
-    // version 5: improve v3 with culling
-    function update_v5(timestamp) {
-      var scrollY = window.scrollY;
-      for (var m = 0; m < MOVERS_COUNT; m++) {
-        if (isInViewport(tops[m], scrollY)) {
-          movers[m].style.left    = topToLeft(tops[m], timestamp) + 'px';
-          movers[m].style.display = 'block';
-        } else if (m != MOVERS_COUNT - 1) { // never hide the last mover to keep page size
-          movers[m].style.display = 'none';
-        }
-      }
-      if (cameraEnable) camera.style.top = scrollY + 'px';
-      if (window.running) rAF(updateFunc);
-      // FIX: Showing/hiding balls need 'restyle' & 'reflow'
     }
     //----------------------------------------------------------------------------------------------
     function isInViewport (elementY, scrollY) {
@@ -283,68 +161,9 @@
       return (scrollY + viewportHeight + PADDING);
     }
     //----------------------------------------------------------------------------------------------
-    // version 6: improve v5 by moving balls between visible and hidden parent nodes
-    function update_v6 (timestamp) {
-      var scrollY = window.scrollY;
-      for (var m = 0; m < MOVERS_COUNT; m++) {
-        if (isInViewport(tops[m], scrollY)) {
-          movers[m].style.left = topToLeft(tops[m], timestamp) + 'px';
-          // if (isHidden(m)) showImmediately(m); // 6a
-          if (isHidden(m)) requestShow(m); // 6b
-        } else if (m != MOVERS_COUNT - 1) { // never hide the last mover to keep page size
-          if (isVisible(m)) hide(m);
-        }
-      }
-      processShowRequests(); // 6b
-
-      if (window.running) rAF(updateFunc);
-      // FIX: Not every balls need to check 'isInViewport'
-    }
-    //----------------------------------------------------------------------------------------------
-    function showImmediately (m)    { container.appendChild(movers[m]);         }
     function requestShow (m)        { batchNodeShow.appendChild(movers[m]);     }
     function processShowRequests () { container.appendChild(batchNodeShow);     }
     function hide (m)               { hidden.appendChild(movers[m]);            }
-    function isHidden (m)           { return movers[m].parentNode == hidden;    }
-    function isVisible (m)          { return movers[m].parentNode == container; }
-    //----------------------------------------------------------------------------------------------
-    // version 7: improve v6 with pre-calculated index
-    function update_v7(timestamp) {
-      var scrollY     = window.scrollY;
-      var minVisibleM = Math.floor(getMinVisibleY(scrollY) / OFFSET);
-      var maxVisibleM = Math.ceil(getMaxVisibleY(scrollY) / OFFSET);
-      batchHide(               0,  minVisibleM - 1             );
-      batchHide( maxVisibleM + 1,     MOVERS_COUNT             ); // hide ASAP before drawing
-      
-      // batchDraw(     minVisibleM,      maxVisibleM, timestamp  ); // 7a
-      batchMove(     minVisibleM,      maxVisibleM, timestamp  ); // 7b
-      batchShow(     minVisibleM,      maxVisibleM, timestamp  ); // 7b
-
-      if (window.running) rAF(updateFunc);
-      // FIX: Why hide balls hidden already ?
-    }
-    //----------------------------------------------------------------------------------------------
-    function batchHide (from, to) {
-      from = Math.max(from, 0);
-      to   = Math.min(to, MOVERS_COUNT - 2); // never hide the last mover (to keep page size)
-      for (var m = from; m <= to; m++) {
-        if (isVisible(m)) 
-          hide(m);
-      }
-    }
-    //----------------------------------------------------------------------------------------------
-    function batchHide2 (from, to) { batchHide(from, to); } // to separate in profiler
-    //----------------------------------------------------------------------------------------------
-    function batchDraw (from, to, timestamp) { // draw = move + show
-      from = Math.max(from, 0);
-      to   = Math.min(to, MOVERS_COUNT - 1);
-      for (var m = from; m <= to; m++) {
-        movers[m].style.left = topToLeft(tops[m], timestamp) + 'px';
-        if(isHidden(m)) 
-          requestShow(m);
-      }
-      processShowRequests();
-    }
     //----------------------------------------------------------------------------------------------
     function batchMove (from, to, timestamp) {
       from = Math.max(from, 0);
@@ -352,16 +171,6 @@
       for (var m = from; m <= to; m++) {
         movers[m].style.left = topToLeft(tops[m], timestamp) + 'px';
       }
-    }
-    //----------------------------------------------------------------------------------------------
-    function batchShow (from, to) {
-      from = Math.max(from, 0);
-      to   = Math.min(to, MOVERS_COUNT - 1);
-      for (var m = from; m <= to; m++) {
-        if(isHidden(m)) 
-          requestShow(m);
-      }
-      processShowRequests();
     }
     //----------------------------------------------------------------------------------------------
     // version 8: improve v7 with diff/dirty technique
