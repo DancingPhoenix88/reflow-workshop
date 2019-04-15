@@ -244,10 +244,7 @@
         x                         = tops[m] + timestamp / MOVE_DURATION;
         left                      = (Math.sin(x) + 1) * maxLeft + minLeft;
         scale                     = cycleToScale(xToCycle(x));
-        movers[m].style.left      = left + 'px';
-        movers[m].style.width     = 
-        movers[m].style.height    = (ELEMENT_SIZE * scale) + 'px';
-        // FIX: Combine 3 CSS updates into 1
+        movers[m].style.cssText   = `top:${tops[m]}px; left:${left}px; width:${ELEMENT_SIZE * scale}px; height:${ELEMENT_SIZE * scale}px;`;
       }
     }
     //----------------------------------------------------------------------------------------------
