@@ -119,7 +119,7 @@
     // version 2: separate getting & setting style to eliminate forced reflows
     function update_v2 (timestamp) {
       for (var m = 0; m < MOVERS_COUNT; m++) {
-        lefts[m] = topToLeft(movers[m].offsetTop, timestamp); // get
+        lefts[m] = topToLeft(getTop(m), timestamp); // get
       }
       for (var m = 0; m < MOVERS_COUNT; m++) {
         movers[m].style.left = lefts[m] + 'px'; // set
@@ -127,6 +127,8 @@
       if (window.running) { rAF(updateFunc); }
       // FIX: Cache 'movers[m].offsetTop'
     };
+    //----------------------------------------------------------------------------------------------
+    function getTop (m) { return movers[m].offsetTop; }
   }
   </script>
   <!-- JAVASCRIPT - END -->
