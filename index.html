@@ -44,6 +44,8 @@
       border: solid 3px #4caf5080;
       z-index: 1;
     }
+
+    #hidden { display: none; }
   </style>
   <!-- CSS -END -->
 </head>
@@ -55,6 +57,7 @@
   </div>
   <div id="container"></div>
   <div id="camera"></div>
+  <div id="hidden"></div>
   <!-- HTML - END -->
 
   <!-- JAVASCRIPT - BEGIN -->
@@ -62,8 +65,8 @@
   'use strict';
   window.onload = function () {
     // Adjustment parameters (target: 60FPS)
-    const MOVERS_COUNT  = 12000;
-    var updateFunc      = update_v5; // to select different algorithm
+    const MOVERS_COUNT  = 80000;
+    var updateFunc      = update_v6; // to select different algorithm
     //----------------------------------------------------------------------------------------------
     // Program parameters
     const MOVE_DURATION = 1000; // actual duration = 2 * PI
@@ -74,6 +77,7 @@
     var btn             = document.getElementById('btnToggle');
     var container       = document.getElementById('container');
     var camera          = document.getElementById('camera');
+    var hidden          = document.getElementById('hidden');
     var movers          = [];
     var tops            = [];
     var lefts           = [];
@@ -81,6 +85,7 @@
     var minLeft         = ELEMENT_SIZE * 0.5;
     var maxLeft         = window.innerWidth * 0.5 - ELEMENT_SIZE;
     var cameraEnable    = false;
+    var batchNodeShow   = document.createDocumentFragment();
     window.running      = false;
     //----------------------------------------------------------------------------------------------
     (function init() {
@@ -97,13 +102,39 @@
     }
     //----------------------------------------------------------------------------------------------
     function generateBalls () {
-      var htmls = [];
-      for (var m = 0; m < MOVERS_COUNT; m++) {
-        tops[m]  = m * OFFSET;
-        htmls[m] = `<div class="mover" style="top:${tops[m]}px"></div>`;
+      console.time('generateBalls');
+
+      // METHOD 1: innerHTML & join
+      // {
+      //   var htmls = [];
+      //   for (var m = 0; m < MOVERS_COUNT; m++) {
+      //     tops[m]  = m * OFFSET;
+      //     htmls[m] = `<div class="mover" style="top:${tops[m]}px"></div>`;
+      //   }
+      //   container.innerHTML = htmls.join('');
+      //   movers = container.children;
+      // }
+
+      // METHOD 2: cloneNode
+      {
+        // Create a prototype for balls
+        var mvPrototype = document.createElement('div');
+        mvPrototype.classList.add('mover');
+
+        // Clone from prototypes and add to a virtual Fragment node
+        for (var m = 0; m < MOVERS_COUNT; m++) {
+          tops[m]      = m * OFFSET;
+          var mv       = mvPrototype.cloneNode();
+          mv.style.top = tops[m] + 'px';
+          movers[m]    = mv;
+          batchNodeShow.appendChild(mv);
+        }
+
+        // Add all Fragment children to container
+        container.appendChild(batchNodeShow);
       }
-      container.innerHTML = htmls.join('');
-      movers = container.children;
+
+      console.timeEnd('generateBalls');
     }
     //----------------------------------------------------------------------------------------------
     function onInterval () {
@@ -193,6 +224,27 @@
     function getMaxVisibleY (scrollY) {
       return (scrollY + viewportHeight + PADDING);
     }
+    //----------------------------------------------------------------------------------------------
+    // version 6: improve v5 by moving balls between visible and hidden parent nodes
+    function update_v6 (timestamp) {
+      var scrollY = window.scrollY;
+      for (var m = 0; m < MOVERS_COUNT; m++) {
+        if (isInViewport(tops[m], scrollY)) {
+          movers[m].style.left = topToLeft(tops[m], timestamp) + 'px';
+          if (isHidden(m)) showImmediately(m);
+        } else if (m != MOVERS_COUNT - 1) { // never hide the last mover to keep page size{
+          if (isVisible(m)) hide(m);
+        }
+      }
+
+      if (window.running) rAF(updateFunc);
+      // FIX: Not every balls need to check 'isInViewport'
+    }
+    //----------------------------------------------------------------------------------------------
+    function showImmediately (m)    { container.appendChild(movers[m]);         }
+    function hide (m)               { hidden.appendChild(movers[m]);            }
+    function isHidden (m)           { return movers[m].parentNode == hidden;    }
+    function isVisible (m)          { return movers[m].parentNode == container; }
   }
   </script>
   <!-- JAVASCRIPT - END -->
