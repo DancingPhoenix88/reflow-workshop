@@ -231,17 +231,21 @@
       for (var m = 0; m < MOVERS_COUNT; m++) {
         if (isInViewport(tops[m], scrollY)) {
           movers[m].style.left = topToLeft(tops[m], timestamp) + 'px';
-          if (isHidden(m)) showImmediately(m);
-        } else if (m != MOVERS_COUNT - 1) { // never hide the last mover to keep page size{
+          // if (isHidden(m)) showImmediately(m); // 6a
+          if (isHidden(m)) requestShow(m); // 6b
+        } else if (m != MOVERS_COUNT - 1) { // never hide the last mover to keep page size
           if (isVisible(m)) hide(m);
         }
       }
+      processShowRequests(); // 6b
 
       if (window.running) rAF(updateFunc);
       // FIX: Not every balls need to check 'isInViewport'
     }
     //----------------------------------------------------------------------------------------------
     function showImmediately (m)    { container.appendChild(movers[m]);         }
+    function requestShow (m)        { batchNodeShow.appendChild(movers[m]);     }
+    function processShowRequests () { container.appendChild(batchNodeShow);     }
     function hide (m)               { hidden.appendChild(movers[m]);            }
     function isHidden (m)           { return movers[m].parentNode == hidden;    }
     function isVisible (m)          { return movers[m].parentNode == container; }
