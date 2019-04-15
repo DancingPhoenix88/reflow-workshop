@@ -118,25 +118,66 @@
       // }
 
       // METHOD 2: cloneNode
+      // {
+      //   // Create a prototype for balls
+      //   var mvPrototype = document.createElement('div');
+      //   mvPrototype.classList.add('mover');
+
+      //   // Clone from prototypes and add to a virtual Fragment node
+      //   for (var m = 0; m < MOVERS_COUNT; m++) {
+      //     tops[m]      = m * OFFSET;
+      //     var mv       = mvPrototype.cloneNode();
+      //     mv.style.top = tops[m] + 'px';
+      //     movers[m]    = mv;
+      //     batchNodeShow.appendChild(mv);
+      //   }
+
+      //   // Add all Fragment children to container
+      //   container.appendChild(batchNodeShow);
+      // }
+
+      // METHOD 3: cloneNode with hidden by default
       {
+        // Count visible balls
+        prevMinM = Math.floor(getMinVisibleY(scrollY) / OFFSET);
+        prevMaxM = Math.ceil(getMaxVisibleY(scrollY) / OFFSET);
+
         // Create a prototype for balls
         var mvPrototype = document.createElement('div');
         mvPrototype.classList.add('mover');
 
-        // Clone from prototypes and add to a virtual Fragment node
-        for (var m = 0; m < MOVERS_COUNT; m++) {
-          tops[m]      = m * OFFSET;
-          var mv       = mvPrototype.cloneNode();
-          mv.style.top = tops[m] + 'px';
-          movers[m]    = mv;
-          batchNodeShow.appendChild(mv);
-        }
+        // Clone from prototype and attach balls to default node
+        cloneVisibleMovers     ( mvPrototype,                0,         prevMaxM );
+        cloneHiddenMovers      ( mvPrototype,     prevMaxM + 1, MOVERS_COUNT - 2 );
+        cloneVisibleMovers     ( mvPrototype, MOVERS_COUNT - 1, MOVERS_COUNT - 1 ); // last ball
 
-        // Add all Fragment children to container
-        container.appendChild(batchNodeShow);
+        // Force scrollY = 0 so that user will see visible balls
+        window.scrollTo(0, 0);
       }
 
       console.timeEnd('generateBalls');
+    }
+    //----------------------------------------------------------------------------------------------
+    function cloneVisibleMovers (mvPrototype, from, to) {
+      for (var m = from; m <= to; m++) {
+        tops[m]      = m * OFFSET;
+        var mv       = mvPrototype.cloneNode();
+        mv.style.top = tops[m] + 'px';
+        movers[m]    = mv;
+        batchNodeShow.appendChild(mv);
+      }
+      container.appendChild(batchNodeShow);
+    }
+    //----------------------------------------------------------------------------------------------
+    function cloneHiddenMovers (mvPrototype, from, to) {
+      for (var m = from; m <= to; m++) {
+        tops[m]      = m * OFFSET;
+        var mv       = mvPrototype.cloneNode();
+        mv.style.top = tops[m] + 'px';
+        movers[m]    = mv;
+        batchNodeShow.appendChild(mv);
+      }
+      hidden.appendChild(batchNodeShow);
     }
     //----------------------------------------------------------------------------------------------
     function onInterval () {
