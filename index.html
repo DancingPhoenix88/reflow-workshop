@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>Reflow workshop</title>
+  <!-- CSS - BEGIN -->
+  <style type="text/css">
+    .mover {
+      position: absolute;
+      height: 50px;
+      width: 50px;
+      border-radius: 25px;
+      background-image: radial-gradient(#07f4ff, #0e91ce);
+      box-shadow: 0 0 10px 0px #1ef2fe;
+    }
+
+    #inputContainer {
+      position: fixed;
+      z-index: 2;
+      bottom: 10px;
+      left: 30px;
+    }
+
+    input {
+      font-size: 18px;
+      width: 200px;
+      padding: 10px;
+      border: 1px solid #CCC;
+      border-radius: 10px;
+      box-shadow: 0 0 6px #CCC;
+      cursor: pointer;
+      outline: 0 !important;
+    }
+    input:hover  { box-shadow: 0 0 7px 5px #00a1ff; }
+    input:active { box-shadow: inset 0 0 10px #000; }
+
+    body { margin: 0; background: black; }
+  </style>
+  <!-- CSS -END -->
+</head>
+
+<body>
+  <!-- HTML - BEGIN -->
+  <div id="inputContainer">
+      <input type="button" class="btn" id="btnToggle" value="Play / Pause"/>
+  </div>
+  <div id="container"></div>
+  <!-- HTML - END -->
+
+  <!-- JAVASCRIPT - BEGIN -->
+  <script type="text/javascript">
+  'use strict';
+  window.onload = function () {
+    // Adjustment parameters (target: 60FPS)
+    const MOVERS_COUNT  = 100;
+    var updateFunc      = update_v0; // to select different algorithm
+    //----------------------------------------------------------------------------------------------
+    // Program parameters
+    const MOVE_DURATION = 1000; // actual duration = 2 * PI
+    const ELEMENT_SIZE  = 50;   // px
+    const OFFSET        = 5;    // px
+    var btn             = document.getElementById('btnToggle');
+    var container       = document.getElementById('container');
+    var movers          = [];
+    var viewportHeight  = window.innerHeight;
+    var minLeft         = ELEMENT_SIZE * 0.5;
+    var maxLeft         = window.innerWidth * 0.5 - ELEMENT_SIZE;
+    var updateInterval  = 0;
+    window.running      = false;
+    //----------------------------------------------------------------------------------------------
+    (function init() {
+      initButtonHandler();
+      generateBalls();
+      onInterval(); // init 1st frame
+    })();
+    //----------------------------------------------------------------------------------------------
+    function initButtonHandler () {
+      btn.addEventListener('click', function (e) {
+        running = !running;
+
+        if (running) {
+          updateInterval = setInterval( onInterval, 1000.0 / 60 ); // FIX: unstable frame rate
+        } else if (updateInterval > 0) {
+          clearInterval( updateInterval );
+          updateInterval = 0;
+        }
+      });
+    }
+    //----------------------------------------------------------------------------------------------
+    function generateBalls () {
+      var htmls = [];
+      for (var m = 0; m < MOVERS_COUNT; m++) {
+        htmls[m] = `<div class="mover" style="top:${m * OFFSET}px"></div>`;
+      }
+      container.innerHTML = htmls.join('');
+      movers = container.children;
+    }
+    //----------------------------------------------------------------------------------------------
+    function onInterval () {
+      updateFunc( Date.now() );
+    }
+    //----------------------------------------------------------------------------------------------
+    function topToLeft (top, timestamp) {
+      return (Math.sin(top + timestamp / MOVE_DURATION) + 1) * maxLeft + minLeft;
+    }
+    //----------------------------------------------------------------------------------------------
+    function update_v0 (timestamp) {
+      for (var m = 0; m < MOVERS_COUNT; m++) {
+        movers[m].style.left = topToLeft(movers[m].offsetTop, timestamp) + 'px';
+      }
+      // FIX: Forced reflow
+    }
+  }
+  </script>
+  <!-- JAVASCRIPT - END -->
+</body>
+</html>
