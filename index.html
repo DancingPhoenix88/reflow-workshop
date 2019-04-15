@@ -52,8 +52,8 @@
   'use strict';
   window.onload = function () {
     // Adjustment parameters (target: 60FPS)
-    const MOVERS_COUNT  = 800;
-    var updateFunc      = update_v3; // to select different algorithm
+    const MOVERS_COUNT  = 1000;
+    var updateFunc      = update_v4; // to select different algorithm
     //----------------------------------------------------------------------------------------------
     // Program parameters
     const MOVE_DURATION = 1000; // actual duration = 2 * PI
@@ -87,7 +87,7 @@
       var htmls = [];
       for (var m = 0; m < MOVERS_COUNT; m++) {
         tops[m]  = m * OFFSET;
-        htmls[m] = `<div class="mover" style="top:${tops[m]}px"></div>`;
+        htmls[m] = `<div class="mover"></div>`;
       }
       container.innerHTML = htmls.join('');
       movers = container.children;
@@ -142,6 +142,16 @@
     }
     //----------------------------------------------------------------------------------------------
     function getTop_v3 (m) { return tops[m]; } // too fast -> from now on, we use tops[m] directly
+    //----------------------------------------------------------------------------------------------
+    // version 4: use 'translate' instead of 'top' & 'left'
+    // 'Repaint' time is eliminated, but 'Restyle' time increases
+    // I had no clue to improve from v4, so v5 will be improved from v3
+    function update_v4(timestamp) {
+      for (var m = 0; m < MOVERS_COUNT; m++) {
+        movers[m].style.transform = `translate(${topToLeft(tops[m], timestamp)}px, ${tops[m]}px)`;
+      }
+      if (window.running) rAF(updateFunc);
+    }
   }
   </script>
   <!-- JAVASCRIPT - END -->
