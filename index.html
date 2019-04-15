@@ -257,7 +257,10 @@
       var maxVisibleM = Math.ceil(getMaxVisibleY(scrollY) / OFFSET);
       batchHide(               0,  minVisibleM - 1             );
       batchHide( maxVisibleM + 1,     MOVERS_COUNT             ); // hide ASAP before drawing
-      batchDraw(     minVisibleM,      maxVisibleM, timestamp  );
+      
+      // batchDraw(     minVisibleM,      maxVisibleM, timestamp  ); // 7a
+      batchMove(     minVisibleM,      maxVisibleM, timestamp  ); // 7b
+      batchShow(     minVisibleM,      maxVisibleM, timestamp  ); // 7b
 
       if (window.running) rAF(updateFunc);
       // FIX: Why hide balls hidden already ?
