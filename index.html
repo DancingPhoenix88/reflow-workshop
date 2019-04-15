@@ -35,6 +35,15 @@
     input:active { box-shadow: inset 0 0 10px #000; }
 
     body { margin: 0; background: black; }
+
+    #camera {
+      position: absolute;
+      width: 98%;
+      left: 1%;
+      height: 100%;
+      border: solid 3px #4caf5080;
+      z-index: 1;
+    }
   </style>
   <!-- CSS -END -->
 </head>
@@ -45,6 +54,7 @@
       <input type="button" class="btn" id="btnToggle" value="Play / Pause"/>
   </div>
   <div id="container"></div>
+  <div id="camera"></div>
   <!-- HTML - END -->
 
   <!-- JAVASCRIPT - BEGIN -->
@@ -52,22 +62,25 @@
   'use strict';
   window.onload = function () {
     // Adjustment parameters (target: 60FPS)
-    const MOVERS_COUNT  = 1000;
-    var updateFunc      = update_v4; // to select different algorithm
+    const MOVERS_COUNT  = 12000;
+    var updateFunc      = update_v5; // to select different algorithm
     //----------------------------------------------------------------------------------------------
     // Program parameters
     const MOVE_DURATION = 1000; // actual duration = 2 * PI
     const ELEMENT_SIZE  = 50;   // px
     const OFFSET        = 5;    // px
+    const PADDING       = 500;  // px
     var rAF             = window.requestAnimationFrame;
     var btn             = document.getElementById('btnToggle');
     var container       = document.getElementById('container');
+    var camera          = document.getElementById('camera');
     var movers          = [];
     var tops            = [];
     var lefts           = [];
     var viewportHeight  = window.innerHeight;
     var minLeft         = ELEMENT_SIZE * 0.5;
     var maxLeft         = window.innerWidth * 0.5 - ELEMENT_SIZE;
+    var cameraEnable    = false;
     window.running      = false;
     //----------------------------------------------------------------------------------------------
     (function init() {
@@ -87,7 +100,7 @@
       var htmls = [];
       for (var m = 0; m < MOVERS_COUNT; m++) {
         tops[m]  = m * OFFSET;
-        htmls[m] = `<div class="mover"></div>`;
+        htmls[m] = `<div class="mover" style="top:${tops[m]}px"></div>`;
       }
       container.innerHTML = htmls.join('');
       movers = container.children;
@@ -151,6 +164,34 @@
         movers[m].style.transform = `translate(${topToLeft(tops[m], timestamp)}px, ${tops[m]}px)`;
       }
       if (window.running) rAF(updateFunc);
+    }
+    //----------------------------------------------------------------------------------------------
+    // version 5: improve v3 with culling
+    function update_v5(timestamp) {
+      var scrollY = window.scrollY;
+      for (var m = 0; m < MOVERS_COUNT; m++) {
+        if (isInViewport(tops[m], scrollY)) {
+          movers[m].style.left    = topToLeft(tops[m], timestamp) + 'px';
+          movers[m].style.display = 'block';
+        } else if (m != MOVERS_COUNT - 1) { // never hide the last mover to keep page size
+          movers[m].style.display = 'none';
+        }
+      }
+      if (cameraEnable) camera.style.top = scrollY + 'px';
+      if (window.running) rAF(updateFunc);
+      // FIX: Showing/hiding balls need 'restyle' & 'reflow'
+    }
+    //----------------------------------------------------------------------------------------------
+    function isInViewport (elementY, scrollY) {
+        return (getMinVisibleY(scrollY) <= elementY) && (elementY <= getMaxVisibleY(scrollY));
+    }
+    //----------------------------------------------------------------------------------------------
+    function getMinVisibleY (scrollY) {
+      return (scrollY - PADDING - ELEMENT_SIZE);
+    }
+    //----------------------------------------------------------------------------------------------
+    function getMaxVisibleY (scrollY) {
+      return (scrollY + viewportHeight + PADDING);
     }
   }
   </script>
