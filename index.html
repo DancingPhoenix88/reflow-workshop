@@ -148,7 +148,7 @@
 
         // Clone from prototype and attach balls to default node
         cloneVisibleMovers     ( mvPrototype,                0,         prevMaxM );
-        cloneHiddenMovers      ( mvPrototype,     prevMaxM + 1, MOVERS_COUNT - 2 );
+        delayCloneHiddenMovers ( mvPrototype,     prevMaxM + 1, MOVERS_COUNT - 2 );
         cloneVisibleMovers     ( mvPrototype, MOVERS_COUNT - 1, MOVERS_COUNT - 1 ); // last ball
 
         // Force scrollY = 0 so that user will see visible balls
@@ -160,10 +160,10 @@
     //----------------------------------------------------------------------------------------------
     function cloneVisibleMovers (mvPrototype, from, to) {
       for (var m = from; m <= to; m++) {
-        tops[m]      = m * OFFSET;
-        var mv       = mvPrototype.cloneNode();
-        mv.style.top = tops[m] + 'px';
-        movers[m]    = mv;
+        tops[m]          = m * OFFSET;
+        var mv           = mvPrototype.cloneNode();
+        mv.style.cssText = `top:${tops[m]}px; left:${topToLeft(tops[m], 0)}px;`;
+        movers[m]        = mv;
         batchNodeShow.appendChild(mv);
       }
       container.appendChild(batchNodeShow);
@@ -178,6 +178,22 @@
         batchNodeShow.appendChild(mv);
       }
       hidden.appendChild(batchNodeShow);
+    }
+    //----------------------------------------------------------------------------------------------
+    function delayCloneHiddenMovers (mvPrototype, from, to) {
+      console.time('delayCloneHiddenMovers');
+      btn.style.display = 'none';
+
+      setTimeout(
+        function (btn, updateFunc, mvPrototype, from, to) {
+          cloneHiddenMovers( mvPrototype, from, to );
+          btn.style.display = null;
+          rAF( updateFunc ); // init 1st frame
+          console.timeEnd('delayCloneHiddenMovers');
+        },
+        20, // ms
+        btn, updateFunc, mvPrototype, from, to // forward parameters
+      );
     }
     //----------------------------------------------------------------------------------------------
     function onInterval () {
