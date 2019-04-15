@@ -65,8 +65,8 @@
   'use strict';
   window.onload = function () {
     // Adjustment parameters (target: 60FPS)
-    const MOVERS_COUNT  = 140000;
-    var updateFunc      = update_v7; // to select different algorithm
+    const MOVERS_COUNT  = 1000000;
+    var updateFunc      = update_v8; // to select different algorithm
     //----------------------------------------------------------------------------------------------
     // Program parameters
     const MOVE_DURATION = 1000; // actual duration = 2 * PI
@@ -86,6 +86,8 @@
     var maxLeft         = window.innerWidth * 0.5 - ELEMENT_SIZE;
     var cameraEnable    = false;
     var batchNodeShow   = document.createDocumentFragment();
+    var prevMinM        = -MOVERS_COUNT;
+    var prevMaxM        = -MOVERS_COUNT;
     window.running      = false;
     //----------------------------------------------------------------------------------------------
     (function init() {
@@ -302,6 +304,72 @@
       for (var m = from; m <= to; m++) {
         if(isHidden(m)) 
           requestShow(m);
+      }
+      processShowRequests();
+    }
+    //----------------------------------------------------------------------------------------------
+    // version 8: improve v7 with diff/dirty technique
+    function update_v8(timestamp) {
+      var scrollY     = window.scrollY;
+      var minVisibleM = Math.floor(getMinVisibleY(scrollY) / OFFSET);
+      var maxVisibleM = Math.ceil(getMaxVisibleY(scrollY) / OFFSET);
+      if (prevMinM == minVisibleM) {
+        // identical
+        // ---------------[ooooooooooooo]--------------------------
+        // ---------------[ooooooooooooo]--------------------------
+        // console.log('stay');
+        batchMove( minVisibleM, maxVisibleM, timestamp );
+      } else if (minVisibleM > prevMaxM || maxVisibleM < prevMinM) {
+        // completely different
+        // ----[ooooooooooooo]-------------------------------------
+        // ----------------------------[ooooooooooooo]-------------
+        if (prevMinM == -MOVERS_COUNT) { // 1st frame -> hide all
+          prevMinM = 0;
+          prevMaxM = MOVERS_COUNT;
+          // console.log('init');
+        } 
+        // else { console.log('jump'); }
+        forceHide(    prevMinM,     prevMaxM             );
+        batchMove( minVisibleM,  maxVisibleM, timestamp  );
+        forceShow( minVisibleM,  maxVisibleM             );
+      } else if (minVisibleM > prevMinM) {
+        // intersection 1
+        // ---------------[ooooooooooooo]--------------------------
+        // ---------------------[ooooooooooooo]--------------------
+        // ---------------[xxxxx|ooooooo|+++++]--------------------
+        // console.log('scroll down');
+        forceHide(        prevMinM,  minVisibleM - 1             );
+        batchMove(     minVisibleM,      maxVisibleM, timestamp  );
+        forceShow(    prevMaxM + 1,      maxVisibleM             );
+      } else {
+        // intersection 2 (1st update will be here)
+        // ---------------------[ooooooooooooo]--------------------
+        // ---------------[ooooooooooooo]--------------------------
+        // ---------------[+++++|ooooooo|xxxxx]--------------------
+        // console.log('scroll up');
+        forceHide( maxVisibleM + 1,         prevMaxM             );
+        batchMove(     minVisibleM,      maxVisibleM, timestamp  );
+        forceShow(     minVisibleM,     prevMinM - 1             );
+      }
+      prevMinM = minVisibleM;
+      prevMaxM = maxVisibleM;
+
+      if (window.running) rAF(updateFunc);
+    }
+    //----------------------------------------------------------------------------------------------
+    function forceHide (from, to) { // hide without checking 'isVisible'
+      from = Math.max(from, 0);
+      to   = Math.min(to, MOVERS_COUNT - 2); // never hide the last mover (to keep page size)
+      for (var m = from; m <= to; m++) {
+        hide(m);
+      }
+    }
+    //----------------------------------------------------------------------------------------------
+    function forceShow (from, to) { // show without checking 'isHidden'
+      from = Math.max(from, 0);
+      to   = Math.min(to, MOVERS_COUNT - 1);
+      for (var m = from; m <= to; m++) {
+        requestShow(m);
       }
       processShowRequests();
     }
