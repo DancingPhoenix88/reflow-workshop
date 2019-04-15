@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>Reflow workshop</title>
+  <!-- CSS - BEGIN -->
+  <style type="text/css">
+    .mover {
+      position: absolute;
+      height: 50px;
+      width: 50px;
+      border-radius: 25px;
+      background-image: radial-gradient(#07f4ff, #0e91ce);
+      box-shadow: 0 0 10px 0px #1ef2fe;
+    }
+
+    #inputContainer {
+      position: fixed;
+      z-index: 2;
+      bottom: 10px;
+      left: 30px;
+    }
+
+    input {
+      font-size: 18px;
+      width: 200px;
+      padding: 10px;
+      border: 1px solid #CCC;
+      border-radius: 10px;
+      box-shadow: 0 0 6px #CCC;
+      cursor: pointer;
+      outline: 0 !important;
+    }
+    input:hover  { box-shadow: 0 0 7px 5px #00a1ff; }
+    input:active { box-shadow: inset 0 0 10px #000; }
+
+    body { margin: 0; background: black; }
+
+    #hidden { display: none; }
+  </style>
+  <!-- CSS -END -->
+</head>
+
+<body>
+  <!-- HTML - BEGIN -->
+  <div id="inputContainer">
+      <input type="button" class="btn" id="btnToggle" value="Play / Pause"/>
+  </div>
+  <div id="container"></div>
+  <div id="camera"></div>
+  <div id="hidden"></div>
+  <!-- HTML - END -->
+
+  <!-- JAVASCRIPT - BEGIN -->
+  <script type="text/javascript">
+  'use strict';
+  window.onload = function () {
+    // Adjustment parameters (target: 60FPS)
+    const MOVERS_COUNT  = 1000;
+    var updateFunc      = update_v8; // to select different algorithm
+    //----------------------------------------------------------------------------------------------
+    // Program parameters
+    const MOVE_DURATION = 1000; // actual duration = 2 * PI
+    const ELEMENT_SIZE  = 50;   // px
+    const OFFSET        = 5;    // px
+    const PADDING       = 500;  // px
+    var rAF             = window.requestAnimationFrame;
+    var btn             = document.getElementById('btnToggle');
+    var container       = document.getElementById('container');
+    var hidden          = document.getElementById('hidden');
+    var movers          = [];
+    var tops            = [];
+    var viewportHeight  = window.innerHeight;
+    var minLeft         = ELEMENT_SIZE * 0.5;
+    var maxLeft         = window.innerWidth * 0.5 - ELEMENT_SIZE;
+    var cameraEnable    = false;
+    var batchNodeShow   = document.createDocumentFragment();
+    var prevMinM        = -MOVERS_COUNT;
+    var prevMaxM        = -MOVERS_COUNT;
+    window.running      = false;
+    //----------------------------------------------------------------------------------------------
+    (function init() {
+      initButtonHandler();
+      generateBalls();
+    })();
+    //----------------------------------------------------------------------------------------------
+    function initButtonHandler () {
+      btn.addEventListener('click', function (e) {
+        running = !running;
+        if (running) rAF( updateFunc );
+      });
+    }
+    //----------------------------------------------------------------------------------------------
+    function generateBalls () {
+      // Count visible balls
+      prevMinM = Math.floor(getMinVisibleY(scrollY) / OFFSET);
+      prevMaxM = Math.ceil(getMaxVisibleY(scrollY) / OFFSET);
+
+      // Create a prototype for balls
+      var mvPrototype = document.createElement('div');
+      mvPrototype.classList.add('mover');
+
+      // Clone from prototype and attach balls to default node
+      cloneVisibleMovers     ( mvPrototype,                0,         prevMaxM );
+      delayCloneHiddenMovers ( mvPrototype,     prevMaxM + 1, MOVERS_COUNT - 2 );
+      cloneVisibleMovers     ( mvPrototype, MOVERS_COUNT - 1, MOVERS_COUNT - 1 ); // last ball
+
+      // Force scrollY = 0 so that user will see visible balls
+      window.scrollTo(0, 0);
+    }
+    //----------------------------------------------------------------------------------------------
+    function cloneVisibleMovers (mvPrototype, from, to) {
+      for (var m = from; m <= to; m++) {
+        tops[m]          = m * OFFSET;
+        var mv           = mvPrototype.cloneNode();
+        mv.style.cssText = `top:${tops[m]}px; left:${topToLeft(tops[m], 0)}px;`;
+        movers[m]        = mv;
+        batchNodeShow.appendChild(mv);
+      }
+      container.appendChild(batchNodeShow);
+    }
+    //----------------------------------------------------------------------------------------------
+    function cloneHiddenMovers (mvPrototype, from, to) {
+      for (var m = from; m <= to; m++) {
+        tops[m]      = m * OFFSET;
+        var mv       = mvPrototype.cloneNode();
+        mv.style.top = tops[m] + 'px';
+        movers[m]    = mv;
+        batchNodeShow.appendChild(mv);
+      }
+      hidden.appendChild(batchNodeShow);
+    }
+    //----------------------------------------------------------------------------------------------
+    function delayCloneHiddenMovers (mvPrototype, from, to) {
+      btn.style.display = 'none';
+
+      setTimeout(
+        function (btn, updateFunc, mvPrototype, from, to) {
+          cloneHiddenMovers( mvPrototype, from, to );
+          btn.style.display = null;
+          rAF( updateFunc ); // init 1st frame
+        },
+        20, // ms
+        btn, updateFunc, mvPrototype, from, to // forward parameters
+      );
+    }
+    //----------------------------------------------------------------------------------------------
+    function topToLeft (top, timestamp) {
+      return (Math.sin(top + timestamp / MOVE_DURATION) + 1) * maxLeft + minLeft;
+    }
+    //----------------------------------------------------------------------------------------------
+    function isInViewport (elementY, scrollY) {
+        return (getMinVisibleY(scrollY) <= elementY) && (elementY <= getMaxVisibleY(scrollY));
+    }
+    //----------------------------------------------------------------------------------------------
+    function getMinVisibleY (scrollY) {
+      return (scrollY - PADDING - ELEMENT_SIZE);
+    }
+    //----------------------------------------------------------------------------------------------
+    function getMaxVisibleY (scrollY) {
+      return (scrollY + viewportHeight + PADDING);
+    }
+    //----------------------------------------------------------------------------------------------
+    function requestShow (m)        { batchNodeShow.appendChild(movers[m]);     }
+    function processShowRequests () { container.appendChild(batchNodeShow);     }
+    function hide (m)               { hidden.appendChild(movers[m]);            }
+    //----------------------------------------------------------------------------------------------
+    function batchMove (from, to, timestamp) {
+      from = Math.max(from, 0);
+      to   = Math.min(to, MOVERS_COUNT - 1);
+      for (var m = from; m <= to; m++) {
+        movers[m].style.left = topToLeft(tops[m], timestamp) + 'px';
+      }
+    }
+    //----------------------------------------------------------------------------------------------
+    // version 8: improve v7 with diff/dirty technique
+    function update_v8(timestamp) {
+      var scrollY     = window.scrollY;
+      var minVisibleM = Math.floor(getMinVisibleY(scrollY) / OFFSET);
+      var maxVisibleM = Math.ceil(getMaxVisibleY(scrollY) / OFFSET);
+      if (prevMinM == minVisibleM) {
+        // identical
+        // ---------------[ooooooooooooo]--------------------------
+        // ---------------[ooooooooooooo]--------------------------
+        // console.log('stay');
+        batchMove( minVisibleM, maxVisibleM, timestamp );
+      } else if (minVisibleM > prevMaxM || maxVisibleM < prevMinM) {
+        // completely different
+        // ----[ooooooooooooo]-------------------------------------
+        // ----------------------------[ooooooooooooo]-------------
+        if (prevMinM == -MOVERS_COUNT) { // 1st frame -> hide all
+          prevMinM = 0;
+          prevMaxM = MOVERS_COUNT;
+          // console.log('init');
+        } 
+        // else { console.log('jump'); }
+        forceHide(    prevMinM,     prevMaxM             );
+        batchMove( minVisibleM,  maxVisibleM, timestamp  );
+        forceShow( minVisibleM,  maxVisibleM             );
+      } else if (minVisibleM > prevMinM) {
+        // intersection 1
+        // ---------------[ooooooooooooo]--------------------------
+        // ---------------------[ooooooooooooo]--------------------
+        // ---------------[xxxxx|ooooooo|+++++]--------------------
+        // console.log('scroll down');
+        forceHide(        prevMinM,  minVisibleM - 1             );
+        batchMove(     minVisibleM,      maxVisibleM, timestamp  );
+        forceShow(    prevMaxM + 1,      maxVisibleM             );
+      } else {
+        // intersection 2 (1st update will be here)
+        // ---------------------[ooooooooooooo]--------------------
+        // ---------------[ooooooooooooo]--------------------------
+        // ---------------[+++++|ooooooo|xxxxx]--------------------
+        // console.log('scroll up');
+        forceHide( maxVisibleM + 1,         prevMaxM             );
+        batchMove(     minVisibleM,      maxVisibleM, timestamp  );
+        forceShow(     minVisibleM,     prevMinM - 1             );
+      }
+      prevMinM = minVisibleM;
+      prevMaxM = maxVisibleM;
+
+      if (window.running) rAF(updateFunc);
+    }
+    //----------------------------------------------------------------------------------------------
+    function forceHide (from, to) { // hide without checking 'isVisible'
+      from = Math.max(from, 0);
+      to   = Math.min(to, MOVERS_COUNT - 2); // never hide the last mover (to keep page size)
+      for (var m = from; m <= to; m++) {
+        hide(m);
+      }
+    }
+    //----------------------------------------------------------------------------------------------
+    function forceShow (from, to) { // show without checking 'isHidden'
+      from = Math.max(from, 0);
+      to   = Math.min(to, MOVERS_COUNT - 1);
+      for (var m = from; m <= to; m++) {
+        requestShow(m);
+      }
+      processShowRequests();
+    }
+  }
+  </script>
+  <!-- JAVASCRIPT - END -->
+</body>
+</html>
