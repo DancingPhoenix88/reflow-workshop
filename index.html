@@ -52,8 +52,8 @@
   'use strict';
   window.onload = function () {
     // Adjustment parameters (target: 60FPS)
-    const MOVERS_COUNT  = 100;
-    var updateFunc      = update_v1; // to select different algorithm
+    const MOVERS_COUNT  = 600;
+    var updateFunc      = update_v2; // to select different algorithm
     //----------------------------------------------------------------------------------------------
     // Program parameters
     const MOVE_DURATION = 1000; // actual duration = 2 * PI
@@ -63,6 +63,7 @@
     var btn             = document.getElementById('btnToggle');
     var container       = document.getElementById('container');
     var movers          = [];
+    var lefts           = [];
     var viewportHeight  = window.innerHeight;
     var minLeft         = ELEMENT_SIZE * 0.5;
     var maxLeft         = window.innerWidth * 0.5 - ELEMENT_SIZE;
@@ -113,6 +114,18 @@
       }
       // FIX: Forced reflow
       if (window.running) rAF(updateFunc);
+    };
+    //----------------------------------------------------------------------------------------------
+    // version 2: separate getting & setting style to eliminate forced reflows
+    function update_v2 (timestamp) {
+      for (var m = 0; m < MOVERS_COUNT; m++) {
+        lefts[m] = topToLeft(movers[m].offsetTop, timestamp); // get
+      }
+      for (var m = 0; m < MOVERS_COUNT; m++) {
+        movers[m].style.left = lefts[m] + 'px'; // set
+      }
+      if (window.running) { rAF(updateFunc); }
+      // FIX: Cache 'movers[m].offsetTop'
     };
   }
   </script>
