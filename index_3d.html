@@ -12,7 +12,6 @@
       border-radius: 25px;
       background-image: radial-gradient(#07f4ff, #0e91ce);
       box-shadow: 0 0 10px 0px #1ef2fe;
-      opacity: 0.8;
       will-change: transform, opacity;
     }
 
@@ -71,6 +70,9 @@
     const MIN_SCALE     = 0.2;
     const MAX_SCALE     = 1.2;
     const MID_SCALE     = (MIN_SCALE + MAX_SCALE) * 0.5;
+    const MIN_OPACITY   = 0.1;
+    const MID_OPACITY   = 0.6;
+    const MAX_OPACITY   = 1;
     var rAF             = window.requestAnimationFrame;
     var btn             = document.getElementById('btnToggle');
     var container       = document.getElementById('container');
@@ -243,13 +245,14 @@
     }
     //----------------------------------------------------------------------------------------------
     function _batchTransform (from, to, timestamp) {
-      var x, left, scale;
+      var x, left, cycle, scale;
       for (var m = from; m <= to; m++) {
         x                         = tops[m] + timestamp / MOVE_DURATION;
         left                      = (Math.sin(x) + 1) * maxLeft + minLeft;
-        scale                     = cycleToScale(xToCycle(x));
+        cycle                     = xToCycle(x);
+        scale                     = cycleToScale(cycle);
         movers[m].style.transform = `translate(${left}px, ${tops[m]}px) scale(${scale})`;
-        // FIX: Add opacity
+        movers[m].style.opacity   = cycleToOpacity(cycle);
       }
     }
     //----------------------------------------------------------------------------------------------
@@ -266,6 +269,18 @@
         return interpolate((t - 0.5) / CYCLE_PART, MAX_SCALE, MID_SCALE, EasingFunctions.easeOutQuad);
       } else { // Back: left -> center
         return interpolate((t - 0.75) / CYCLE_PART, MID_SCALE, MIN_SCALE, EasingFunctions.easeInQuad);
+      }
+    }
+    //-----------------------------------------------------------------------------
+    function cycleToOpacity(t) {
+      if (t < 0.25) { // Back: center -> right
+        return interpolate(t / CYCLE_PART, MIN_OPACITY, MID_OPACITY);
+      } else if (t < 0.5) { // Front: right -> center
+        return interpolate((t - 0.25) / CYCLE_PART, MID_OPACITY, MAX_OPACITY);
+      } else if (t < 0.75) { // Front: center -> left
+        return interpolate((t - 0.5) / CYCLE_PART, MAX_OPACITY, MID_OPACITY);
+      } else { // Back: left -> center
+        return interpolate((t - 0.75) / CYCLE_PART, MID_OPACITY, MIN_OPACITY);
       }
     }
     //----------------------------------------------------------------------------------------------
