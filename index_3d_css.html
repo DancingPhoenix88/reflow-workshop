@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>Reflow workshop - part 3</title>
+  <!-- CSS - BEGIN -->
+  <style type="text/css">
+    .mover {
+      position: absolute;
+      height: 50px;
+      width: 50px;
+      border-radius: 25px;
+      background-image: radial-gradient(#07f4ff, #0e91ce);
+      box-shadow: 0 0 10px 0px #1ef2fe;
+      will-change: transform, opacity;
+      opacity: 0;
+
+      animation-name: swing;
+      animation-duration: 6.28s; /* 2 * PI * [old]MOVE_DURATION */
+      animation-iteration-count: infinite;
+    }
+
+    @keyframes swing {
+      0%    { opacity: 0.10; transform: translateX( 500px) scale(0.2); animation-timing-function: ease-out; }
+      25%   { opacity: 0.60; transform: translateX(1000px) scale(0.7); animation-timing-function: ease-in; }
+      50%   { opacity: 1.00; transform: translateX( 500px) scale(1.2); animation-timing-function: ease-out; }
+      75%   { opacity: 0.60; transform: translateX(   0px) scale(0.7); animation-timing-function: ease-in; }
+      100%  { opacity: 0.10; transform: translateX( 500px) scale(0.2); animation-timing-function: ease-out; }
+    }
+
+    #inputContainer {
+      position: fixed;
+      z-index: 2;
+      bottom: 10px;
+      left: 30px;
+    }
+
+    input {
+      font-size: 18px;
+      width: 200px;
+      padding: 10px;
+      border: 1px solid #CCC;
+      border-radius: 10px;
+      box-shadow: 0 0 6px #CCC;
+      cursor: pointer;
+      outline: 0 !important;
+    }
+    input:hover  { box-shadow: 0 0 7px 5px #00a1ff; }
+    input:active { box-shadow: inset 0 0 10px #000; }
+
+    body { margin: 0; background: black; }
+
+    #hidden { display: none; }
+  </style>
+  <!-- CSS -END -->
+</head>
+
+<body>
+  <!-- HTML - BEGIN -->
+  <div id="inputContainer">
+      <input type="button" class="btn" id="btnToggle" value="Play / Pause"/>
+  </div>
+  <div id="container">
+    <div class="mover"></div>
+  </div>
+  <div id="hidden"></div>
+  <!-- HTML - END -->
+</body>
+</html>
