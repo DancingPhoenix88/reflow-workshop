@@ -31,6 +31,7 @@ ___
 ___
 ## 4 - Workshop - part 1
 **Target**: Draw balls moving horizontally, smoothly with 60FPS. More balls are better.
+![Workshop - Part 1 - Screenshot](https://github.com/DancingPhoenix88/reflow-workshop/blob/develop/screenshots/v8-1M%20balls.png?raw=true)
 
     File: `index.html`
     Screenshots: `screenshots/*.png`
@@ -78,6 +79,7 @@ Since v8 will not be affected by number of balls anymore:
 ___
 ## 5 - Workshop - part 2
 **Target**: Improve balls drawing with opacity and transform to mimic 3D space
+![Workshop - Part 2 - Screenshot](https://github.com/DancingPhoenix88/reflow-workshop/blob/develop/screenshots/animate-3d/v8.4-1K%20balls.png?raw=true)
 
     File: `index_3d.html`
     Screenshots: `screenshots/animate-3d/*.png`
