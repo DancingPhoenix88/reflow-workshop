@@ -78,7 +78,8 @@
     const ELEMENT_SIZE          = 50;   // px
     const OFFSET                = 5;    // px
     const PADDING               = 500;  // px
-    const ACTUACL_MOVE_DURATION = MOVE_DURATION * 2 * Math.PI;
+    const ACTUAL_MOVE_DURATION  = MOVE_DURATION * 2 * Math.PI;
+    const DELAY                 = 120;  // ms
     var rAF                     = window.requestAnimationFrame;
     var btn                     = document.getElementById('btnToggle');
     var container               = document.getElementById('container');
@@ -113,9 +114,10 @@
 
         // Clone from prototypes and add to a virtual Fragment node
         for (var m = 0; m < MOVERS_COUNT; m++) {
-          var mv       = mvPrototype.cloneNode();
-          mv.style.top = (m * OFFSET) + 'px';
-          movers[m]    = mv;
+          var mv           = mvPrototype.cloneNode();
+          var delay        = (DELAY * m % ACTUAL_MOVE_DURATION) / 1000;
+          mv.style.cssText = `top:${m * OFFSET}px; animation-delay:${delay}s;`;
+          movers[m]        = mv;
           batchNodeShow.appendChild(mv);
         }
 
