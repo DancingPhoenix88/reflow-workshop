@@ -73,7 +73,7 @@
   'use strict';
   window.onload = function () {
     // Adjustment parameters (target: 60FPS)
-    const CULL_ENABLED          = false;
+    const CULL_ENABLED          = true;
     const MOVERS_COUNT          = 1000;
     var updateFunc              = update_v8; // to select different algorithm
     //----------------------------------------------------------------------------------------------
@@ -100,6 +100,7 @@
     (function init() {
       initButtonHandler();
       generateBalls();
+      if (CULL_ENABLED) rAF(updateFunc);
     })();
     //----------------------------------------------------------------------------------------------
     function initButtonHandler () {
@@ -152,8 +153,6 @@
     function hide (m)               { hidden.appendChild(movers[m]);            }
     //----------------------------------------------------------------------------------------------
     function update_v8(timestamp) {
-      if (!CULL_ENABLED) return;
-
       var scrollY     = window.scrollY;
       var minVisibleM = Math.floor(getMinVisibleY(scrollY) / OFFSET);
       var maxVisibleM = Math.ceil(getMaxVisibleY(scrollY) / OFFSET);
