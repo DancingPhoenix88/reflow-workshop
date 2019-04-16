@@ -5,6 +5,12 @@
   <title>Reflow workshop - part 3</title>
   <!-- CSS - BEGIN -->
   <style type="text/css">
+    :root {
+      --MIN_X: 0px;
+      --MID_X: 500px;
+      --MAX_X: 1000px;
+    }
+
     .mover {
       position: absolute;
       height: 50px;
@@ -21,11 +27,11 @@
     }
 
     @keyframes swing {
-      0%    { opacity: 0.10; transform: translateX( 500px) scale(0.2); animation-timing-function: ease-out; }
-      25%   { opacity: 0.60; transform: translateX(1000px) scale(0.7); animation-timing-function: ease-in; }
-      50%   { opacity: 1.00; transform: translateX( 500px) scale(1.2); animation-timing-function: ease-out; }
-      75%   { opacity: 0.60; transform: translateX(   0px) scale(0.7); animation-timing-function: ease-in; }
-      100%  { opacity: 0.10; transform: translateX( 500px) scale(0.2); animation-timing-function: ease-out; }
+      0%    { opacity: 0.10; transform: translateX(var(--MID_X)) scale(0.2); animation-timing-function: ease-out; }
+      25%   { opacity: 0.60; transform: translateX(var(--MAX_X)) scale(0.7); animation-timing-function: ease-in; }
+      50%   { opacity: 1.00; transform: translateX(var(--MID_X)) scale(1.2); animation-timing-function: ease-out; }
+      75%   { opacity: 0.60; transform: translateX(var(--MIN_X)) scale(0.7); animation-timing-function: ease-in; }
+      100%  { opacity: 0.10; transform: translateX(var(--MID_X)) scale(0.2); animation-timing-function: ease-out; }
     }
 
     #container.pause .mover {
@@ -90,18 +96,26 @@
     var hidden                  = document.getElementById('hidden');
     var movers                  = [];
     var viewportHeight          = window.innerHeight;
-    // var minLeft                 = ELEMENT_SIZE * 0.5;
-    // var maxLeft                 = window.innerWidth * 0.5 - ELEMENT_SIZE;
+    var minLeft                 = ELEMENT_SIZE * 0.5;
+    var maxLeft                 = window.innerWidth - ELEMENT_SIZE * 1.5;
     var batchNodeShow           = document.createDocumentFragment();
     var prevMinM                = -MOVERS_COUNT;
     var prevMaxM                = -MOVERS_COUNT;
     window.running              = true;
     //----------------------------------------------------------------------------------------------
     (function init() {
+      initAnimations();
       initButtonHandler();
       generateBalls();
       if (CULL_ENABLED) rAF(updateFunc);
     })();
+    //----------------------------------------------------------------------------------------------
+    function initAnimations () {
+      var root = document.documentElement;
+      root.style.setProperty('--MIN_X', minLeft + 'px');
+      root.style.setProperty('--MID_X', ((minLeft + maxLeft) * 0.5) + 'px');
+      root.style.setProperty('--MAX_X', maxLeft + 'px');
+    }
     //----------------------------------------------------------------------------------------------
     function initButtonHandler () {
       btn.addEventListener('click', function (e) {
