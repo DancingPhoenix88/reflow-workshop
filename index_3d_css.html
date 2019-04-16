@@ -28,6 +28,10 @@
       100%  { opacity: 0.10; transform: translateX( 500px) scale(0.2); animation-timing-function: ease-out; }
     }
 
+    #container.pause .mover {
+      animation-play-state: paused;
+    }
+
     #inputContainer {
       position: fixed;
       z-index: 2;
@@ -91,7 +95,7 @@
     var batchNodeShow           = document.createDocumentFragment();
     var prevMinM                = -MOVERS_COUNT;
     var prevMaxM                = -MOVERS_COUNT;
-    window.running              = false;
+    window.running              = true;
     //----------------------------------------------------------------------------------------------
     (function init() {
       initButtonHandler();
@@ -101,7 +105,12 @@
     function initButtonHandler () {
       btn.addEventListener('click', function (e) {
         running = !running;
-        if (running) rAF( updateFunc );
+        if (running) {
+          container.classList.remove('pause');
+          if (CULL_ENABLED) rAF(updateFunc);
+        } else {
+          container.classList.add('pause');
+        }
       });
     }
     //----------------------------------------------------------------------------------------------
