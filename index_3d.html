@@ -13,6 +13,7 @@
       background-image: radial-gradient(#07f4ff, #0e91ce);
       box-shadow: 0 0 10px 0px #1ef2fe;
       opacity: 0.8;
+      will-change: transform, opacity;
     }
 
     #inputContainer {
@@ -57,7 +58,7 @@
   'use strict';
   window.onload = function () {
     // Adjustment parameters (target: 60FPS)
-    const MOVERS_COUNT  = 200;
+    const MOVERS_COUNT  = 1000;
     var updateFunc      = update_v8; // to select different algorithm
     //----------------------------------------------------------------------------------------------
     // Program parameters
