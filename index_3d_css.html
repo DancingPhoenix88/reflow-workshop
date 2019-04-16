@@ -60,10 +60,131 @@
   <div id="inputContainer">
       <input type="button" class="btn" id="btnToggle" value="Play / Pause"/>
   </div>
-  <div id="container">
-    <div class="mover"></div>
-  </div>
+  <div id="container"></div>
   <div id="hidden"></div>
   <!-- HTML - END -->
+
+  <!-- JAVASCRIPT - BEGIN -->
+  <script type="text/javascript">
+  'use strict';
+  window.onload = function () {
+    // Adjustment parameters (target: 60FPS)
+    const CULL_ENABLED          = false;
+    const MOVERS_COUNT          = 1000;
+    var updateFunc              = update_v8; // to select different algorithm
+    //----------------------------------------------------------------------------------------------
+    // Program parameters
+    const MOVE_DURATION         = 1000; // actual duration = 2 * PI
+    const ELEMENT_SIZE          = 50;   // px
+    const OFFSET                = 5;    // px
+    const PADDING               = 500;  // px
+    const ACTUACL_MOVE_DURATION = MOVE_DURATION * 2 * Math.PI;
+    var rAF                     = window.requestAnimationFrame;
+    var btn                     = document.getElementById('btnToggle');
+    var container               = document.getElementById('container');
+    var hidden                  = document.getElementById('hidden');
+    var movers                  = [];
+    var viewportHeight          = window.innerHeight;
+    // var minLeft                 = ELEMENT_SIZE * 0.5;
+    // var maxLeft                 = window.innerWidth * 0.5 - ELEMENT_SIZE;
+    var batchNodeShow           = document.createDocumentFragment();
+    var prevMinM                = -MOVERS_COUNT;
+    var prevMaxM                = -MOVERS_COUNT;
+    window.running              = false;
+    //----------------------------------------------------------------------------------------------
+    (function init() {
+      initButtonHandler();
+      generateBalls();
+    })();
+    //----------------------------------------------------------------------------------------------
+    function initButtonHandler () {
+      btn.addEventListener('click', function (e) {
+        running = !running;
+        if (running) rAF( updateFunc );
+      });
+    }
+    //----------------------------------------------------------------------------------------------
+    function generateBalls () {
+      // METHOD 2: cloneNode
+      {
+        // Create a prototype for balls
+        var mvPrototype = document.createElement('div');
+        mvPrototype.classList.add('mover');
+
+        // Clone from prototypes and add to a virtual Fragment node
+        for (var m = 0; m < MOVERS_COUNT; m++) {
+          var mv       = mvPrototype.cloneNode();
+          mv.style.top = (m * OFFSET) + 'px';
+          movers[m]    = mv;
+          batchNodeShow.appendChild(mv);
+        }
+
+        // Add all Fragment children to container
+        container.appendChild(batchNodeShow);
+      }
+    }
+    //----------------------------------------------------------------------------------------------
+    function isInViewport (elementY, scrollY) {
+        return (getMinVisibleY(scrollY) <= elementY) && (elementY <= getMaxVisibleY(scrollY));
+    }
+    //----------------------------------------------------------------------------------------------
+    function getMinVisibleY (scrollY) {
+      return (scrollY - PADDING - ELEMENT_SIZE);
+    }
+    //----------------------------------------------------------------------------------------------
+    function getMaxVisibleY (scrollY) {
+      return (scrollY + viewportHeight + PADDING);
+    }
+    //----------------------------------------------------------------------------------------------
+    function requestShow (m)        { batchNodeShow.appendChild(movers[m]);     }
+    function processShowRequests () { container.appendChild(batchNodeShow);     }
+    function hide (m)               { hidden.appendChild(movers[m]);            }
+    //----------------------------------------------------------------------------------------------
+    function update_v8(timestamp) {
+      if (!CULL_ENABLED) return;
+
+      var scrollY     = window.scrollY;
+      var minVisibleM = Math.floor(getMinVisibleY(scrollY) / OFFSET);
+      var maxVisibleM = Math.ceil(getMaxVisibleY(scrollY) / OFFSET);
+      if (prevMinM == minVisibleM) {
+      } else if (minVisibleM > prevMaxM || maxVisibleM < prevMinM) {
+        if (prevMinM == -MOVERS_COUNT) { // 1st frame -> hide all
+          prevMinM = 0;
+          prevMaxM = MOVERS_COUNT;
+        } 
+        forceHide(        prevMinM,         prevMaxM );
+        forceShow(     minVisibleM,      maxVisibleM );
+      } else if (minVisibleM > prevMinM) {
+        forceHide(        prevMinM,  minVisibleM - 1 );
+        forceShow(    prevMaxM + 1,      maxVisibleM );
+      } else {
+        forceHide( maxVisibleM + 1,         prevMaxM );
+        forceShow(     minVisibleM,     prevMinM - 1 );
+      }
+      prevMinM = minVisibleM;
+      prevMaxM = maxVisibleM;
+
+      if (window.running) rAF(updateFunc);
+    }
+    //----------------------------------------------------------------------------------------------
+    function forceHide (from, to) { // hide without checking 'isVisible'
+      from = Math.max(from, 0);
+      to   = Math.min(to, MOVERS_COUNT - 2); // never hide the last mover (to keep page size)
+      for (var m = from; m <= to; m++) {
+        hide(m);
+      }
+    }
+    //----------------------------------------------------------------------------------------------
+    function forceShow (from, to) { // show without checking 'isHidden'
+      from = Math.max(from, 0);
+      to   = Math.min(to, MOVERS_COUNT - 1);
+      for (var m = from; m <= to; m++) {
+        requestShow(m);
+      }
+      processShowRequests();
+    }
+  }
+  </script>
+  <!-- JAVASCRIPT - END -->
 </body>
 </html>
