@@ -1,0 +1,109 @@
+Rendering pipeline in a Web page (Workshop)
+-------------------------------------------------------------
+https://github.com/DancingPhoenix88/reflow-workshop
+-------------------------------------------------------------
+1 - Rendering pipeline
+    Javascript:     Execute JS code to interact with DOM tree
+    Style:          Calculate style in CSSOM tree to apply to DOM tree
+    Layout:         Calculate position, size to arrange elements in the web page
+    Paint:          Draw elements into layers (separated by 3D attributes or manually)
+    Composite:      Apply transform to layers (without re-painting !!!)
+2 - What are restyle, reflow, repaint events
+    Repaint:        Change color, border radius, shadow ... requests browser to re-paint element
+    Reflow:         Change position, size ... requests browser to re-arrange / re-layout ALL RELATED elements, THEN re-paint them
+    Restyle:        Change CSS atributes in general, can lead to reflow & repaint events
+3 - Why are they slow
+    One element changes in layout forces browser to reflow before next requests
+    Many element changes ? -> Repeat forcing reflow (-> repaint)
+    .
+    Add / remove a DOM node ? Reflow + Repaint
+    Hide element by 'display:none' ? Reflow + Repaint
+    Hide element by 'visibility:hidden' ? Repaint
+    Hide element by 'transform:scale(0)' ? None
+4 - Workshop - part 1
+    Draw balls moving horizontally, smoothly with 60FPS. More balls are better.
+    v0:     setInterval -> Unstable frame rate with 100 balls (+ Chrome Devtools)
+    v1:     requestAnimationFrame -> 100 balls but still force reflow
+    v2:     separate get & set style -> 600 balls
+    v3:     cache offsetTop -> 800 balls
+    v4:     use `transform` instead of `position` -> 1K balls (replace Repaint by Restyle, + sessions)
+    v5:     apply culling -> 12K balls !!! (+ Camera, Layer)
+    v6:     hide elements by moving to a hidden node -> 80K with hiccup (DOM GC)
+    v6b:    batch showing elements by DocumentFragment -> better but it seems GC appears more often
+    v7:     pre-calculate visible index range -> 140K balls, and split functions in profiler
+    v7b:    separate updating position and display ? nothing improved -> ignore
+    v8:     only update dirty elements by comparing index range -> 1M balls !!!
+    Lessons:
+        - top/left with position=absolute will not trigger reflow events
+        - Put restyle, reflow, repaint commands in requestAnimationFrame instead of setInterval
+        - Group restyle, reflow repaint commands trigger all at once
+        - Optimize more and more if you can (culling, dirty techniques). Profiler is your friend
+        - Batch appendChild to DOM using DocumentFragment
+        - Generate many elements by innerHTML & cloneNode
+        - Some more improvements / experiments:
+            - Find & fix memory leaks
+            - Re-use tops[m] to reduce tops.length
+            - Create default movers as hidden ones
+            - Use ArrayBuffer to store movers
+            - Promote #inputContainer into a separate layer using transform
+            - Use translate(left, top) instead of [translateX/left, top]
+            - Disable each CSS in .mover to measure wich style is heavy
+    v8 will not be affected by number of balls anymore:
+        - Script:   Number of balls change each frame <= 2 * max-visible-balls
+        - Restyle:  Number of balls move = max-visible-balls
+        - Reflow:   Number of new visible/hidden balls <= 2 * max-visible-balls
+        - Repaint:  Number of visible balls is almost fixed
+    => No need to improve more
+5 - Workshop - part 2
+    Improve balls drawing with opacity and transform to mimic 3D space
+    v8.1:   Animate 'width' & 'height' -> 200 balls / 15 FPS (unstable)
+    v8.1b:  Use 'cssText' for batching changes -> not improve (+ Performance Monitor)
+    v8.2:   Use 'transform' ('translate' & 'scale') to animate -> 100K balls / 60FPS
+    v8.2b:  Add 'opacity: 0.8' -> 200 balls / 30FPS (unstable)
+    v8.3:   Add 'will-change' -> 1K balls / 60FPS
+    v8.4:   Animate 'opacity' -> 1K balls / 60FPS
+    Check 'layer borders' option and you will see that each ball is in a separate layer (orange border), this is why FPS is low
+        More specific, open 'Layers' tab and each .mover is in a layer with 'Compositing reasons' = 'willChange'
+        Go back to v8 and check layer borders, they are cyan -> many elements are combined into one single layer
+    Lessons:
+        - Best CSS attributes for animation: opacity, transform
+        - 'will-change' separates element in its own layer (best for opacity, transform animation)
+        - Some more improvements / experiments:
+            - CSS custom properties (force separate paint each ball !!!)
+6 - Workshop - part 3
+    Replace JS animation by CSS animation
+    v9.0    Move 1 ball by CSS
+    v9.1    Generate many balls
+    v9.2    Add delay to each ball
+    v9.3    Pause
+    v9.4    Apply culling
+    v9.5    Dynamic CSS animation
+    Lessons:
+        - CSS animations are useful and handy for simple animations
+        - CSS animations start immediately when assigned class, becomed visible
+        - It is hard to control and optimize CSS animations (time, delay, dynamic parameter like position ... ), but we can try CSS custom var
+7 - List of properties and functions forcing reflow
+    JS:     https://gist.github.com/paulirish/5d52fb081b3570c81e3a
+    CSS:    https://csstriggers.com/
+8 - Secrets behind some advanced DOM manipulations
+    FastDOM:        Put commands into 2 queues & execute 'get' queues first then 'set' queues later (like v2). It is a JS library.
+    Virtual DOM:    Virtual DOM = snapshot of DOM each frame. By comparing snapshots, we can send actual changes to real DOM tree (like v8). It is a technique (most popular with ReactJS, VueJS)
+    Shadow DOM:     Isolate a small DOM tree so that it does not affect outter DOM nodes, and outter DOM nodes could not affect it either (from the outside, Shadow DOM just repaints, like v9). It is a new Web Component.
+9 - More references
+    Presentations:
+        https://speakerdeck.com/addyosmani/velocityconf-rendering-performance-case-studies?slide=1
+    Documents hub:
+        http://jankfree.org/
+        https://developers.google.com/web/
+        https://developers.google.com/web/fundamentals/codelabs/web-perf/
+        https://developers.google.com/web/fundamentals/performance/rendering/
+        https://developers.google.com/web/tools/chrome-devtools/rendering-tools/
+        http://wilsonpage.co.uk/preventing-layout-thrashing/
+        https://www.igvita.com/slides/2012/web-performance-for-the-curious/#29
+        https://www.chromium.org/developers/design-documents/gpu-accelerated-compositing-in-chrome
+    Advanced profiling tools:
+        http://dev.chromium.org/developers/how-tos/trace-event-profiling-tool
+        https://www.html5rocks.com/en/tutorials/games/abouttracing/
+        https://www.gamasutra.com/view/news/176420/Indepth_Using_Chrometracing_to_view_your_inline_profiling_data.php
+EXTRAS:
+    Mind map for this workshop: https://miro.com/app/board/o9J_kxyNsOo=/
